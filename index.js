@@ -1,35 +1,9 @@
 // Importeren van de express module in node_modules
 const express = require('express');
-const mysql = require('mysql2/promise');
+const Database = require ('./classes/database.js');
 
 // Aanmaken van een express app
 const app = express();
-
-class Database {
-    async connect() {
-        const connection = await mysql.createConnection({
-            host: 'localhost',
-            user: 'root',
-            password: 'root',
-            database: 'eurosongdb',
-            port: 3306
-        });
-
-        return connection;
-    }
-
-    async getQuery(sql, params) {
-        const connection = await this.connect();
-        const [ rows ] = await connection.execute(sql, params);
-
-        return rows;
-    }
-}
-
-const db = new Database();
-db.getQuery('SELECT * FROM artists').then((rows) => {
-    console.log(rows);
-});
 
 // Endpoints
 app.get('/', (req, res) => {
@@ -37,10 +11,26 @@ app.get('/', (req, res) => {
 });
 
 app.get('/api/artists', (req, res) => {
-    res.send([
-        "JB",
-        "Beyonce",
-    ]);
+    const db = new Database();
+    db.getQuery('SELECT * FROM artists').then((artists) => {
+        res.send(artists);
+    });
+});
+
+app.get('/api/songs', (req, res) => {
+    const db = new Database();
+    db.getQuery(`
+        SELECT
+            song_id, s.name AS songname, a.name AS artistname
+        FROM
+            songs AS s
+                INNER JOIN
+                    artists AS a
+                        ON
+                            s.artist_id = a.artist_id;
+    `).then((songs) => {
+        res.send(songs);
+    });
 });
 
 // Starten van de server en op welke port de server moet luistere
